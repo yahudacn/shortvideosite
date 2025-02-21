@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>以中快拍</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: black;
+            font-family: Arial, sans-serif;
+        }
+        .video-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            cursor: pointer;
+        }
+        /* 视频信息（标题 & 发布时间） */
+        .video-info {
+            position: absolute;
+            bottom: 70px;
+            left: 20px;
+            background-color: rgba(0, 0, 0, 0.6);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        /* 音量控制模块 */
+        .volume-control {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            display: flex;
+            align-items: center;
+            background-color: rgba(0, 0, 0, 0.6);
+            padding: 8px;
+            border-radius: 5px;
+        }
+        .volume-control label {
+            color: white;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+        .volume-slider {
+            width: 100px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="video-container">
+        <video id="videoPlayer" autoplay loop playsinline>
+            <source id="videoSource" src="video1.mp4" type="video/mp4">
+        </video>
+        <!-- 左下角显示视频标题和发布时间 -->
+        <div class="video-info" id="videoInfo"></div>
+        <!-- 音量调节模块 -->
+        <div class="volume-control">
+            <label for="volumeSlider">音量</label>
+            <input type="range" id="volumeSlider" class="volume-slider" min="0" max="1" step="0.1" value="0.5">
+        </div>
+    </div>
+
+    <script>
+        // 视频列表
+        let videos = [
+            { src: "video1.mp4", title: "短视频 1", date: "2025-02-21" },
+            { src: "video2.mp4", title: "短视频 2", date: "2025-02-20" },
+            { src: "video3.mp4", title: "短视频 3", date: "2025-02-19" },
+            { src: "video4.mp4", title: "短视频 4", date: "2025-02-18" }
+        ];
+
+        let currentIndex = 0;
+        let videoElement = document.getElementById("videoPlayer");
+        let videoInfoElement = document.getElementById("videoInfo");
+        let volumeSlider = document.getElementById("volumeSlider");
+
+        // **更新视频标题和发布时间**
+        function updateVideoInfo() {
+            videoInfoElement.innerHTML = `<strong>${videos[currentIndex].title}</strong><br>${videos[currentIndex].date}`;
+        }
+        updateVideoInfo();
+
+        // **单击播放/暂停**
+        videoElement.addEventListener("click", function() {
+            if (videoElement.paused) {
+                videoElement.play();
+            } else {
+                videoElement.pause();
+            }
+        });
+
+        // **取消静音 & 设置默认音量**
+        videoElement.muted = false;
+        videoElement.volume = 0.5; // 初始音量 50%
+
+        // **监听音量调节滑块**
+        volumeSlider.addEventListener("input", function() {
+            videoElement.volume = volumeSlider.value;
+        });
+
+        // **鼠标滚轮切换视频**
+        document.addEventListener("wheel", function(event) {
+            if (event.deltaY > 0) {
+                nextVideo();
+            } else {
+                prevVideo();
+            }
+        });
+
+        // **触摸滑动切换视频（手机支持）**
+        let touchStartY = 0;
+        document.addEventListener("touchstart", function(event) {
+            touchStartY = event.touches[0].clientY;
+        });
+        document.addEventListener("touchend", function(event) {
+            let touchEndY = event.changedTouches[0].clientY;
+            if (touchStartY - touchEndY > 50) {
+                nextVideo(); // 向上滑动，播放下一个视频
+            } else if (touchEndY - touchStartY > 50) {
+                prevVideo(); // 向下滑动，播放上一个视频
+            }
+        });
+
+        // **切换下一个视频**
+        function nextVideo() {
+            currentIndex = (currentIndex + 1) % videos.length;
+            switchVideo();
+        }
+
+        // **切换上一个视频**
+        function prevVideo() {
+            currentIndex = (currentIndex - 1 + videos.length) % videos.length;
+            switchVideo();
+        }
+
+        // **执行视频切换**
+        function switchVideo() {
+            let newSrc = videos[currentIndex].src;
+            document.getElementById("videoSource").src = newSrc;
+            videoElement.load(); // 强制重新加载视频
+            videoElement.play();
+            updateVideoInfo();
+        }
+    </script>
+</body>
+</html>
