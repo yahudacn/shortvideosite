@@ -20,6 +20,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            position: relative;
         }
         video {
             width: 100%;
@@ -30,7 +31,7 @@
         /* 视频信息（标题 & 发布时间） */
         .video-info {
             position: absolute;
-            bottom: 70px;
+            bottom: 40px;
             left: 20px;
             background-color: rgba(0, 0, 0, 0.6);
             color: white;
@@ -38,25 +39,39 @@
             border-radius: 5px;
             font-size: 16px;
         }
-        /* 音量控制模块 */
-        .volume-control {
+        /* 进度条容器 - 贴紧视频底部 */
+        .progress-container {
             position: absolute;
-            bottom: 20px;
-            left: 20px;
+            bottom: 0px; /* 直接贴紧视频底部 */
+            left: 0;
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.3);
+            cursor: pointer;
             display: flex;
             align-items: center;
-            background-color: rgba(0, 0, 0, 0.6);
-            padding: 8px;
-            border-radius: 5px;
+            position: absolute;
         }
-        .volume-control label {
-            color: white;
-            font-size: 14px;
-            margin-right: 10px;
+        /* 进度条 */
+        .progress-bar {
+            height: 100%;
+            background: red;
+            width: 0%;
+            position: absolute;
+            left: 0;
+            top: 0;
         }
-        .volume-slider {
-            width: 100px;
-            cursor: pointer;
+        /* 进度点 */
+        .progress-dot {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background-color: white;
+            border-radius: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            left: 0%;
+            transition: left 0.1s ease-out;
         }
     </style>
 </head>
@@ -67,10 +82,10 @@
         </video>
         <!-- 左下角显示视频标题和发布时间 -->
         <div class="video-info" id="videoInfo"></div>
-        <!-- 音量调节模块 -->
-        <div class="volume-control">
-            <label for="volumeSlider">音量</label>
-            <input type="range" id="volumeSlider" class="volume-slider" min="0" max="1" step="0.1" value="0.5">
+        <!-- 进度条 -->
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-bar" id="progressBar"></div>
+            <div class="progress-dot" id="progressDot"></div>
         </div>
     </div>
 
@@ -86,7 +101,9 @@
         let currentIndex = 0;
         let videoElement = document.getElementById("videoPlayer");
         let videoInfoElement = document.getElementById("videoInfo");
-        let volumeSlider = document.getElementById("volumeSlider");
+        let progressContainer = document.getElementById("progressContainer");
+        let progressBar = document.getElementById("progressBar");
+        let progressDot = document.getElementById("progressDot");
 
         // **更新视频标题和发布时间**
         function updateVideoInfo() {
@@ -94,22 +111,31 @@
         }
         updateVideoInfo();
 
-        // **单击播放/暂停**
-        videoElement.addEventListener("click", function() {
-            if (videoElement.paused) {
-                videoElement.play();
-            } else {
-                videoElement.pause();
+        // **单击播放/暂停，但避免误触**
+        videoElement.addEventListener("click", function(event) {
+            let rect = progressContainer.getBoundingClientRect();
+            if (!(event.clientY > rect.top && event.clientY < rect.bottom)) {
+                if (videoElement.paused) {
+                    videoElement.play();
+                } else {
+                    videoElement.pause();
+                }
             }
         });
 
-        // **取消静音 & 设置默认音量**
-        videoElement.muted = false;
-        videoElement.volume = 0.5; // 初始音量 50%
+        // **监听进度条更新**
+        videoElement.addEventListener("timeupdate", function() {
+            let progress = (videoElement.currentTime / videoElement.duration) * 100;
+            progressBar.style.width = progress + "%";
+            progressDot.style.left = progress + "%";
+        });
 
-        // **监听音量调节滑块**
-        volumeSlider.addEventListener("input", function() {
-            videoElement.volume = volumeSlider.value;
+        // **拖动进度条调整播放进度**
+        progressContainer.addEventListener("click", function(event) {
+            let rect = progressContainer.getBoundingClientRect();
+            let offsetX = event.clientX - rect.left;
+            let newTime = (offsetX / rect.width) * videoElement.duration;
+            videoElement.currentTime = newTime;
         });
 
         // **鼠标滚轮切换视频**
@@ -129,9 +155,9 @@
         document.addEventListener("touchend", function(event) {
             let touchEndY = event.changedTouches[0].clientY;
             if (touchStartY - touchEndY > 50) {
-                nextVideo(); // 向上滑动，播放下一个视频
+                nextVideo();
             } else if (touchEndY - touchStartY > 50) {
-                prevVideo(); // 向下滑动，播放上一个视频
+                prevVideo();
             }
         });
 
@@ -151,9 +177,11 @@
         function switchVideo() {
             let newSrc = videos[currentIndex].src;
             document.getElementById("videoSource").src = newSrc;
-            videoElement.load(); // 强制重新加载视频
+            videoElement.load();
             videoElement.play();
             updateVideoInfo();
+            progressBar.style.width = "0%";
+            progressDot.style.left = "0%";
         }
     </script>
 </body>
